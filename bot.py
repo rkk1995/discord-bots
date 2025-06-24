@@ -1,6 +1,6 @@
 import os
 import discord
-import google.generativeai as genai
+from openai import OpenAI
 from dotenv import load_dotenv
 import logging
 
@@ -18,13 +18,15 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Load your Discord and Gemini API tokens
+# Load your Discord and Grok API tokens
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+XAI_API_KEY = os.getenv("XAI_API_KEY")
 
-# Configure Gemini AI
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+# Configure Grok (OpenAI client for x.ai)
+client_grok = OpenAI(
+    api_key=XAI_API_KEY,
+    base_url="https://api.x.ai/v1",
+)
 
 # Set up the Discord bot
 intents = discord.Intents.all()
@@ -32,7 +34,7 @@ intents.typing = False
 intents.presences = False
 
 
-class GeminiBot(discord.Client):
+class GrokBot(discord.Client):
     async def on_ready(self):
         if self.user:
             logger.info(f"{self.user.name} has connected to Discord!")
@@ -55,30 +57,27 @@ class GeminiBot(discord.Client):
 
         # Send an initial message to inform the user that the bot is working on a response
         working_message = await message.channel.send("Thinking ...")
-
         # Calculate max tokens based on input message length and maximum allowed tokens
         max_reply_tokens = max(1, 1000 - len(input_text))
 
         try:
-            # Call the Gemini API with the user's message
-            response = model.generate_content(
-                input_text,
-                generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=max_reply_tokens,
-                    temperature=1,
-                ),
+            # Call the Grok API with the user's message
+            completion = client_grok.chat.completions.create(
+                model="grok-3-latest",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": input_text},
+                ],
+                max_tokens=max_reply_tokens,
+                n=1,
+                stop=None,
+                temperature=1,
             )
-
-            # Extract the generated response
-            gemini_response = response.text.strip()
-
-            logger.info(f"Generated response: {gemini_response[:100]}...")
-
-            # Edit the initial message with the actual response
-            await working_message.edit(content=gemini_response)
-
+            grok_response = completion.choices[0].message.content.strip()
+            logger.info(f"Generated response: {grok_response[:100]}...")
+            await working_message.edit(content=grok_response)
         except Exception as e:
-            logger.error(f"Gemini API Error: {str(e)}")
+            logger.error(f"Grok API Error: {str(e)}")
             await working_message.edit(
                 content=f"Sorry, there was an error processing your request. {str(e)}"
             )
@@ -90,12 +89,12 @@ if not DISCORD_TOKEN:
     logger.error("Please create a .env file with your Discord bot token.")
     exit(1)
 
-if not GEMINI_API_KEY:
-    logger.error("GEMINI_API_KEY not found in environment variables!")
-    logger.error("Please create a .env file with your Gemini API key.")
+if not XAI_API_KEY:
+    logger.error("XAI_API_KEY not found in environment variables!")
+    logger.error("Please create a .env file with your X.AI Grok API key.")
     exit(1)
 
 # Create and run the bot
 logger.info("Starting Discord bot...")
-client = GeminiBot(intents=intents)
+client = GrokBot(intents=intents)
 client.run(DISCORD_TOKEN)
