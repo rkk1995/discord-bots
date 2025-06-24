@@ -58,24 +58,25 @@ class GrokBot(discord.Client):
         # Send an initial message to inform the user that the bot is working on a response
         working_message = await message.channel.send("Thinking ...")
         # Calculate max tokens based on input message length and maximum allowed tokens
-        max_reply_tokens = max(1, 1000 - len(input_text))
+        max_reply_tokens = max(1, 2048 - len(input_text))
 
         try:
             # Call the Grok API with the user's message
             completion = client_grok.chat.completions.create(
-                model="grok-3-latest",
+                model="grok-3-mini-latest",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant. You answer questions in a discord server with some friends. Try to keep your messages short but always include the most important details and facts unless told not to. ",
+                    },
                     {"role": "user", "content": input_text},
                 ],
                 max_tokens=max_reply_tokens,
-                max_completion_tokens=max_reply_tokens,
                 n=1,
-                stop=None,
                 temperature=1,
             )
             grok_response = completion.choices[0].message.content.strip()
-            logger.info(f"Generated response: {grok_response[:100]}...")
+            logger.info(f"Generated response: {grok_response}...")
             await working_message.edit(content=grok_response)
         except Exception as e:
             logger.error(f"Grok API Error: {str(e)}")
