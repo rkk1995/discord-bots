@@ -2,6 +2,18 @@ import os
 import discord
 import google.generativeai as genai
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler(),  # Also log to console
+    ],
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -22,7 +34,10 @@ intents.presences = False
 
 class GeminiBot(discord.Client):
     async def on_ready(self):
-        print(f"{self.user.name} has connected to Discord!")
+        if self.user:
+            logger.info(f"{self.user.name} has connected to Discord!")
+        else:
+            logger.info("Bot has connected to Discord!")
 
     async def on_message(self, message):
         # Ignore messages from the bot itself
@@ -35,6 +50,8 @@ class GeminiBot(discord.Client):
 
         # Extract the text after the command
         input_text = message.content[len("!grok") :].strip()
+
+        logger.info(f"Received command from {message.author}: {input_text}")
 
         # Send an initial message to inform the user that the bot is working on a response
         working_message = await message.channel.send("Thinking ...")
@@ -55,27 +72,30 @@ class GeminiBot(discord.Client):
             # Extract the generated response
             gemini_response = response.text.strip()
 
+            logger.info(f"Generated response: {gemini_response[:100]}...")
+
             # Edit the initial message with the actual response
             await working_message.edit(content=gemini_response)
 
         except Exception as e:
-            print(f"Gemini API Error: {str(e)}")
+            logger.error(f"Gemini API Error: {str(e)}")
             await working_message.edit(
-                content="Sorry, there was an error processing your request."
+                content=f"Sorry, there was an error processing your request. {str(e)}"
             )
 
 
 # Check if tokens are provided
 if not DISCORD_TOKEN:
-    print("Error: DISCORD_TOKEN not found in environment variables!")
-    print("Please create a .env file with your Discord bot token.")
+    logger.error("DISCORD_TOKEN not found in environment variables!")
+    logger.error("Please create a .env file with your Discord bot token.")
     exit(1)
 
 if not GEMINI_API_KEY:
-    print("Error: GEMINI_API_KEY not found in environment variables!")
-    print("Please create a .env file with your Gemini API key.")
+    logger.error("GEMINI_API_KEY not found in environment variables!")
+    logger.error("Please create a .env file with your Gemini API key.")
     exit(1)
 
 # Create and run the bot
+logger.info("Starting Discord bot...")
 client = GeminiBot(intents=intents)
 client.run(DISCORD_TOKEN)
