@@ -3,6 +3,9 @@
 # Discord Bot Auto-Restart Script
 # This script ensures the Discord bot is always running
 
+# Change to the script's directory
+cd "$(dirname "$0")"
+
 BOT_SCRIPT="bot.py"
 PYTHON_CMD="python3"
 LOG_FILE="bot.log"
