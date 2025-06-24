@@ -20,6 +20,7 @@ else
     # Activate virtual environment if it exists
     if [ -d "venv" ]; then
         source venv/bin/activate
+        pip install -r requirements.txt
     fi
     
     # Start the bot in background (let Python handle its own logging)
