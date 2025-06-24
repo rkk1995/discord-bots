@@ -1,6 +1,6 @@
 import os
 import discord
-from openai import OpenAI
+from openai import OpenAI, max_retries
 from dotenv import load_dotenv
 import logging
 
@@ -69,6 +69,7 @@ class GrokBot(discord.Client):
                     {"role": "user", "content": input_text},
                 ],
                 max_tokens=max_reply_tokens,
+                max_completion_tokens=max_reply_tokens,
                 n=1,
                 stop=None,
                 temperature=1,
