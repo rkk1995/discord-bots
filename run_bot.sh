@@ -22,8 +22,8 @@ else
         source venv/bin/activate
     fi
     
-    # Start the bot in background
-    nohup $PYTHON_CMD $BOT_SCRIPT >> "$LOG_FILE" 2>&1 &
+    # Start the bot in background (let Python handle its own logging)
+    nohup $PYTHON_CMD $BOT_SCRIPT > /dev/null 2>&1 &
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Discord bot started." >> "$LOG_FILE"
 fi
