@@ -63,7 +63,7 @@ class GrokBot(discord.Client):
         try:
             # Call the Grok API with the user's message
             completion = client_grok.chat.completions.create(
-                model="grok-3-mini-latest",
+                model="grok-4-1-fast-reasoning",
                 messages=[
                     {
                         "role": "system",
