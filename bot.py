@@ -1,6 +1,5 @@
 import datetime
 import os
-import re
 from typing import List, Optional
 import discord
 from openai import AsyncOpenAI
@@ -17,6 +16,7 @@ from utils.discord_helpers import get_server_context
 from prompts.system import get_system_prompt
 
 from log.setup import setup_logging
+from links.links import handle_links
 
 # Configure logging
 logger = setup_logging()
@@ -53,31 +53,14 @@ class GrokBot(commands.Bot):
 
     async def on_ready(self):
         logger.info(f"🤖 {self.user} is online and ready!")
-
-    async def on_message(self, message: discord.Message):
-        # Ignore messages from the bot itself
-        if message.author.bot:
-            return
-
-        mentioned = self.user.id in message.raw_mentions
-        if not mentioned:
-            return
-
-        if message.id in self.processed_messages:
-            return
-        self.processed_messages.add(message.id)
-
-        if len(self.processed_messages) > 1000:
-            self.processed_messages.clear()
-
-        await message.channel.typing()
+    
+    async def handle_mention(self, message: discord.Message):
         user_input = message.clean_content.replace(f"@{self.user.name}", "").strip()
         history = []
         try:
             # Fetch last 30 messages for context (increased for better understanding)
             async for msg in message.channel.history(limit=30, before=message):
                 item = None
-                # Label other bots clearly in the history so Grok understands context
                 if msg.author.bot:
                     content = f"[Bot {msg.author.name}]: {msg.clean_content}"
                     item = assistant(content)
@@ -96,30 +79,44 @@ class GrokBot(commands.Bot):
             history=history,
             server_context=server_context,
         )
-        if not success:
-            # If silence signal returned (success=False, response="[SILENCE]"), just return
-            if response == "[SILENCE]":
+        return success, response
+    
+
+    async def on_message(self, message: discord.Message):
+        # Ignore messages from the bot itself
+        if message.author.bot:
+            return
+
+        if message.id in self.processed_messages:
+            return
+        self.processed_messages.add(message.id)
+
+        if len(self.processed_messages) > 1000:
+            self.processed_messages.clear()
+
+        mentioned = self.user.id in message.raw_mentions
+        if mentioned:
+            await message.channel.typing()
+            success, response = await self.handle_mention(message)
+            if not success:
+                await message.channel.send(response, suppress_embeds=True)
                 return
-            await message.channel.send(response, suppress_embeds=True)
-            return
+            if not response or not response.strip():
+                response = (
+                    "I'm sorry, I couldn't generate a proper response. Please try again."
+                )
+            response = clean_response(response)
+            for chunk in split_for_discord(response):
+                await message.channel.send(chunk, suppress_embeds=True)
 
-        # Check if response is empty or None
-        if not response or not response.strip():
-            response = (
-                "I'm sorry, I couldn't generate a proper response. Please try again."
-            )
-
-        # Check for silence token in successful response too (just in case)
-        if response.strip() == "[SILENCE]":
-            return
-
-        response = clean_response(response)
-
-        # Truncate response if it's too long
-        for chunk in split_for_discord(response):
-            await message.channel.send(chunk, suppress_embeds=True)
-
-
+        else:
+            should_process, response = handle_links(message)
+            if not should_process:
+                return
+            await message.channel.typing()
+            await message.delete()
+            await message.channel.send(response, allowed_mentions=discord.AllowedMentions.none())
+        
     async def call_openai_api(
         self,
         input_text: str,
@@ -141,21 +138,8 @@ class GrokBot(commands.Bot):
                     messages.append(entry)
             messages.append(user(input_text))
 
-            # # Current user message
-            # user_content = []
-            # final_text = input_text or "Please describe the attached image(s)."
-            # user_content.append({"type": "text", "text": final_text})
-
-            # if image_data:
-            #     for image in image_data:
-            #         # Ensure image_url is in the correct format
-            #         if "image_url" in image:
-            #             user_content.append(image)
-
-            # messages.append(user(user_content))
-
             logger.info(
-                f"🔧 Sending request to OpenRouter (Grok 4.1 Fast) with input snippet: {messages}'"
+                f"🔧 Sending request to OpenRouter (Grok 4.1 Fast) with input snippet'"
             )
 
             chat = self.openai_client.chat.create(
@@ -169,7 +153,6 @@ class GrokBot(commands.Bot):
             if not response:
                 logger.warning("No response")
             output_text = response.content
-            print(output_text)
             if not output_text:
                 logger.warning("⚠️ OpenRouter returned empty content")
                 return False, "I apologize, but I couldn't generate a proper response."
