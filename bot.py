@@ -1,4 +1,5 @@
 import datetime
+import asyncio
 import os
 from typing import List, Optional
 import discord
@@ -149,7 +150,7 @@ class GrokBot(commands.Bot):
                 messages=messages,
             )
 
-            response = chat.sample()
+            response = await asyncio.to_thread(chat.sample)
             if not response:
                 logger.warning("No response")
             output_text = response.content
