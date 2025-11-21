@@ -31,6 +31,7 @@ XAI_API_KEY = os.getenv("XAI_API_KEY")
 # Set up the Discord bot
 intents = discord.Intents.all()
 intents.message_content = True
+intents.messages = True
 
 
 class GrokBot(commands.Bot):
@@ -42,11 +43,12 @@ class GrokBot(commands.Bot):
 
     async def setup_hook(self):
         # Sync slash commands
+        logger.info("Syncing slash commands...")
         await self.tree.sync()
         logger.info("Slash commands synced")
 
     async def close(self):
-        await self.openai_client.close()
+        self.openai_client.close()
         await super().close()
 
     async def on_ready(self):
@@ -54,9 +56,11 @@ class GrokBot(commands.Bot):
 
     async def on_message(self, message: discord.Message):
         # Ignore messages from the bot itself
-        if not message.content.startswith("!"):
-            return
         if message.author.bot:
+            return
+
+        mentioned = self.user.id in message.raw_mentions
+        if not mentioned:
             return
 
         if message.id in self.processed_messages:
