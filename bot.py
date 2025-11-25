@@ -141,6 +141,7 @@ class GrokBot(commands.Bot):
             if history:
                 for entry in history:  # History is already limited by on_message
                     messages.append(entry)
+            logger.info(input_text)
             messages.append(user(input_text))
 
             logger.info(
