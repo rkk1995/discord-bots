@@ -78,6 +78,7 @@ class GrokBot(commands.Bot):
         except Exception as e:
             logger.warning(f"Could not fetch history: {e}")
         history.reverse()
+        user_input = f"{message.author.name}: {user_input}"
         server_context = get_server_context(message.guild)
         success, response = await self.call_openai_api(
             user_input,
