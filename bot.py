@@ -12,7 +12,11 @@ import logging
 from xai_sdk import Client
 from xai_sdk.chat import user, system, assistant
 from xai_sdk.tools import web_search, x_search
-from utils.text_processing import split_for_discord, clean_response, enforce_single_x_link
+from utils.text_processing import (
+    split_for_discord,
+    clean_response,
+    enforce_single_x_link,
+)
 from utils.discord_helpers import get_server_context
 from prompts.system import get_system_prompt
 
@@ -54,7 +58,7 @@ class GrokBot(commands.Bot):
 
     async def on_ready(self):
         logger.info(f"🤖 {self.user} is online and ready!")
-    
+
     async def handle_mention(self, message: discord.Message):
         user_input = message.clean_content.replace(f"@{self.user.name}", "").strip()
         history = []
@@ -81,7 +85,6 @@ class GrokBot(commands.Bot):
             server_context=server_context,
         )
         return success, response
-    
 
     async def on_message(self, message: discord.Message):
         # Ignore messages from the bot itself
@@ -103,9 +106,7 @@ class GrokBot(commands.Bot):
                 await message.channel.send(response, suppress_embeds=True)
                 return
             if not response or not response.strip():
-                response = (
-                    "I'm sorry, I couldn't generate a proper response. Please try again."
-                )
+                response = "I'm sorry, I couldn't generate a proper response. Please try again."
             response = clean_response(response)
             for chunk in split_for_discord(response):
                 await message.channel.send(chunk, suppress_embeds=True)
@@ -116,8 +117,10 @@ class GrokBot(commands.Bot):
                 return
             await message.channel.typing()
             await message.delete()
-            await message.channel.send(response, allowed_mentions=discord.AllowedMentions.none())
-        
+            await message.channel.send(
+                response, allowed_mentions=discord.AllowedMentions.none()
+            )
+
     async def call_openai_api(
         self,
         input_text: str,
@@ -140,7 +143,7 @@ class GrokBot(commands.Bot):
             messages.append(user(input_text))
 
             logger.info(
-                f"🔧 Sending request to OpenRouter (Grok 4.1 Fast) with input snippet'"
+                f"🔧 Sending request to OpenRouter (Grok 4.1 Fast) with input {messages}'"
             )
 
             chat = self.openai_client.chat.create(
@@ -171,8 +174,6 @@ class GrokBot(commands.Bot):
         except Exception as e:
             logger.error(f"❌ Unexpected error: {str(e)}")
             return False, f"❌ An error occurred: {str(e)}"
-
-
 
 
 # Check if tokens are provided
