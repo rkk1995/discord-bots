@@ -21,7 +21,7 @@ from utils.discord_helpers import get_server_context
 from prompts.system import get_system_prompt
 
 from log.setup import setup_logging
-from links.links import handle_links
+from links.links import fix_content, handle_links
 
 # Configure logging
 logger = setup_logging()
@@ -109,9 +109,7 @@ class GrokBot(commands.Bot):
             if not response or not response.strip():
                 response = "I'm sorry, I couldn't generate a proper response. Please try again."
             response = clean_response(response)
-            logger.info(response)
-            _, response = handle_links(response)
-            logger.info(response)
+            response = fix_content(response)
             for chunk in split_for_discord(response):
                 await message.channel.send(chunk)
 

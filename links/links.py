@@ -47,34 +47,14 @@ def transform_url(url):
     return url
 
 
-def handle_links(content: str) -> tuple[bool, str]:
+def handle_links(message) -> tuple[bool, str]:
     """
     Scans content for specific URLs and transforms them.
     Returns (True, transformed_content) if changes were made, (False, "") otherwise.
     """
-    url_pattern = re.compile(
-        r"<?(http[s]?://(?:www\.)?(?:x\.com|twitter\.com|instagram\.com|vxtwitter\.com|fxtwitter\.com|ddinstagram\.com|kkinstagram\.com)[^\s>]+)>?"
-    )
-    urls = url_pattern.findall(content)
-
-    if not urls:
-        return False, content
-
-    original_to_transformed = {}
-    for url in urls:
-        new_url = transform_url(url)
-        if new_url != url:
-            original_to_transformed[url] = new_url
-
-    if not original_to_transformed:
-        return False, content
-
-    final_content = content
-    print("Transforming message content...")
-    for original, transformed in original_to_transformed.items():
-        # Escape original URL to handle potential special characters in regex
-        final_content = re.sub(re.escape(original), transformed, final_content)
-        print(f"  Replaced '{original}' with '{transformed}'")
+    transformed, final_content = fix_content(message.content)
+    if not transformed:
+        return False, ""
 
     current_poster_display_name = message.author.display_name
     response_header = f"{current_poster_display_name} posted:"
@@ -83,3 +63,24 @@ def handle_links(content: str) -> tuple[bool, str]:
     full_response = f"{response_header}\n{response_body}"
 
     return True, full_response
+
+
+def fix_content(content) -> tuple[bool, str]:
+    url_pattern = re.compile(
+        r"<?(http[s]?://(?:www\.)?(?:x\.com|twitter\.com|instagram\.com|vxtwitter\.com|fxtwitter\.com|ddinstagram\.com|kkinstagram\.com)[^\s>]+)>?"
+    )
+    urls = url_pattern.findall(content)
+    if not urls:
+        return False, content
+    original_to_transformed = {}
+    for url in urls:
+        new_url = transform_url(url)
+        if new_url != url:
+            original_to_transformed[url] = new_url
+    final_content = content
+    print("Transforming message content...")
+    for original, transformed in original_to_transformed.items():
+        # Escape original URL to handle potential special characters in regex
+        final_content = re.sub(re.escape(original), transformed, final_content)
+        print(f"  Replaced '{original}' with '{transformed}'")
+    return final_content
