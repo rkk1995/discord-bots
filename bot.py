@@ -104,6 +104,7 @@ class GrokBot(commands.Bot):
             await message.channel.typing()
             success, response = await self.handle_mention(message)
             if not success:
+                _, response = handle_links(message)
                 await message.channel.send(response, suppress_embeds=True)
                 return
             if not response or not response.strip():
@@ -113,7 +114,7 @@ class GrokBot(commands.Bot):
                 await message.channel.send(chunk, suppress_embeds=True)
 
         else:
-            should_process, response = handle_links(message)
+            should_process, response = handle_links(message.content)
             if not should_process:
                 return
             await message.channel.typing()
