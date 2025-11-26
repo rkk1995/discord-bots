@@ -109,7 +109,9 @@ class GrokBot(commands.Bot):
             if not response or not response.strip():
                 response = "I'm sorry, I couldn't generate a proper response. Please try again."
             response = clean_response(response)
+            print(response)
             _, response = handle_links(response)
+            print(response)
             for chunk in split_for_discord(response):
                 await message.channel.send(chunk)
 
