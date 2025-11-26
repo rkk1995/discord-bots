@@ -114,7 +114,7 @@ class GrokBot(commands.Bot):
                 await message.channel.send(chunk)
 
         else:
-            should_process, response = handle_links(message.content)
+            should_process, response = handle_links(message)
             if not should_process:
                 return
             await message.channel.typing()
