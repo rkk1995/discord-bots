@@ -70,7 +70,7 @@ class GrokBot(commands.Bot):
                     content = f"[Bot {msg.author.name}]: {msg.clean_content}"
                     item = assistant(content)
                 else:
-                    content = f"{msg.author.name}: {msg.clean_content}"
+                    content = f"{msg.author.display_name}: {msg.clean_content}"
                     item = user(content)
 
                 if content:
