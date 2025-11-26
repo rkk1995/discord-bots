@@ -83,4 +83,4 @@ def fix_content(content) -> tuple[bool, str]:
         # Escape original URL to handle potential special characters in regex
         final_content = re.sub(re.escape(original), transformed, final_content)
         print(f"  Replaced '{original}' with '{transformed}'")
-    return final_content
+    return True, final_content
